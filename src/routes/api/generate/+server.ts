@@ -2,6 +2,8 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
+type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
+
 const AI_BASE_URL = env.AI_BASE_URL;
 const AI_API_KEY = env.AI_API_KEY;
 
@@ -17,6 +19,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const style = (form.get('style') as string) ?? '';
     const aspect = (form.get('aspect') as string) ?? '';
     const quality = (form.get('quality') as string) ?? '';
+    const imageFile = form.get('image') as File | null;
     const model = process.env.AI_MODEL ?? 'google/gemini-2.5-flash-image';
 
     const combinedPromptParts: string[] = [];
@@ -25,12 +28,25 @@ export const POST: RequestHandler = async ({ request }) => {
     if (quality) combinedPromptParts.push(`Quality: ${quality}`);
     const combinedPrompt = combinedPromptParts.join('\n\n');
 
+    let content: string | ContentPart[];
+    if (imageFile) {
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const mimeType = imageFile.type || 'image/png';
+      content = [
+        { type: 'text', text: combinedPrompt || 'Generate an image based on this reference.' },
+        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
+      ];
+    } else {
+      content = combinedPrompt || 'Generate an image.';
+    }
+
     const payload = {
       model,
       messages: [
         {
           role: 'user',
-          content: combinedPrompt || 'Generate an image.'
+          content
         }
       ],
       modalities: ['image', 'text'],

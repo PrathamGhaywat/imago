@@ -1,3 +1,5 @@
+This project has used AI to debug, write code, and generate content.
+
 # Imago - Simple image generation frontend
 Imago is a lightweight svelte app that provides a nice UI to generate images using any OpenAI compatible image generation LLM. Check it out at: https://imago.ultimatedev.space
 
